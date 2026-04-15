@@ -124,6 +124,10 @@ struct CompletedTasksView: View {
                         onToggle: { uncomplete(task) },
                         onDelete: { delete(task) },
                         onDetail: { openDetail(for: task) },
+                        categoryOptions: categories,
+                        onMoveToCategory: { category in
+                            moveTask(task, to: category)
+                        },
                         isSelectionMode: isSelectionMode,
                         isSelected: selectedTaskIDs.contains(task.id),
                         onSelectionToggle: {
@@ -231,6 +235,13 @@ struct CompletedTasksView: View {
     private func delete(_ task: TaskItem) {
         selectedTaskIDs.remove(task.id)
         deleteRecursively(task)
+        saveContext()
+    }
+
+    private func moveTask(_ task: TaskItem, to category: TaskCategory) {
+        guard task.category?.id != category.id else { return }
+        task.assignCategoryRecursively(category)
+        selectedTaskIDs.remove(task.id)
         saveContext()
     }
 

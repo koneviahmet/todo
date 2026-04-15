@@ -15,7 +15,6 @@ struct MainMenuView: View {
     @State private var taskInput: String = ""
     @State private var taskSearchText: String = ""
     @State private var isSearchMode: Bool = false
-    @State private var pendingDeleteTask: TaskItem?
     @FocusState private var isTaskInputFocused: Bool
     private let parser = NaturalLanguageTaskParser()
 
@@ -215,10 +214,14 @@ struct MainMenuView: View {
                 TaskRowView(
                     item: task,
                     onToggle: { toggleCompletion(task) },
-                    onDelete: { pendingDeleteTask = task },
+                    onDelete: { openDeleteConfirmation(for: task) },
                     onFocus: { startFocus(for: task) },
                     onSetTimer: { openTaskTimer(for: task) },
-                    onDetail: { openDetail(for: task) }
+                    onDetail: { openDetail(for: task) },
+                    categoryOptions: categories,
+                    onMoveToCategory: { category in
+                        moveTask(task, to: category)
+                    }
                 )
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
@@ -241,32 +244,6 @@ struct MainMenuView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color.clear)
-        .confirmationDialog(
-            "Gorev tamamen silinsin mi?",
-            isPresented: Binding(
-                get: { pendingDeleteTask != nil },
-                set: { isPresented in
-                    if !isPresented { pendingDeleteTask = nil }
-                }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Tamamen Sil", role: .destructive) {
-                if let task = pendingDeleteTask {
-                    deleteTask(task)
-                }
-                pendingDeleteTask = nil
-            }
-            Button("Vazgec", role: .cancel) {
-                pendingDeleteTask = nil
-            }
-        } message: {
-            if let task = pendingDeleteTask {
-                Text("\"\(task.title)\" ve varsa alt gorevleri kalici olarak silinecek.")
-            } else {
-                Text("Bu islem geri alinamaz.")
-            }
-        }
     }
 
     private var focusPanel: some View {
@@ -401,6 +378,20 @@ struct MainMenuView: View {
         saveContext()
     }
 
+    private func moveTask(_ task: TaskItem, to category: TaskCategory) {
+        guard task.category?.id != category.id else { return }
+        task.assignCategoryRecursively(category)
+        saveContext()
+    }
+
+    private func openDeleteConfirmation(for task: TaskItem) {
+        if let menuWindow = NSApp.keyWindow {
+            menuWindow.close()
+        }
+        openWindow(id: "delete-task-window", value: task.id)
+        positionDeleteWindowTopRight()
+    }
+
     private func deleteRecursively(_ task: TaskItem) {
         for subtask in task.subtasks {
             deleteRecursively(subtask)
@@ -459,6 +450,9 @@ struct MainMenuView: View {
     }
 
     private func openTaskTimer(for task: TaskItem) {
+        if let menuWindow = NSApp.keyWindow {
+            menuWindow.close()
+        }
         openWindow(id: "task-timer-window", value: task.id)
         activateAndPositionTimerWindow()
     }
@@ -494,6 +488,24 @@ struct MainMenuView: View {
                 window.orderFrontRegardless()
                 window.level = .normal
             }
+        }
+    }
+
+    private func positionDeleteWindowTopRight() {
+        NSApp.activate(ignoringOtherApps: true)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            guard let window = NSApp.windows.first(where: { $0.title.localizedCaseInsensitiveContains("Gorevi Sil") }),
+                  let screen = window.screen ?? NSScreen.main else { return }
+            let targetSize = NSSize(width: 360, height: 180)
+            let visible = screen.visibleFrame
+            let x = visible.maxX - targetSize.width - 14
+            let y = visible.maxY - targetSize.height - 8
+            window.setContentSize(targetSize)
+            window.setFrameOrigin(NSPoint(x: x, y: y))
+            window.level = .floating
+            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
+            window.level = .normal
         }
     }
 

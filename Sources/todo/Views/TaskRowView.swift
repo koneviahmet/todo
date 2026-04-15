@@ -8,6 +8,8 @@ struct TaskRowView: View {
     var onFocus: (() -> Void)? = nil
     var onSetTimer: (() -> Void)? = nil
     var onDetail: (() -> Void)? = nil
+    var categoryOptions: [TaskCategory] = []
+    var onMoveToCategory: ((TaskCategory) -> Void)? = nil
     var isSelectionMode: Bool = false
     var isSelected: Bool = false
     var onSelectionToggle: (() -> Void)? = nil
@@ -88,6 +90,23 @@ struct TaskRowView: View {
                 if let linkURL = item.linkURL {
                     Button("Linki Ac", systemImage: "arrow.up.right.square") {
                         NSWorkspace.shared.open(linkURL)
+                    }
+                }
+
+                if let onMoveToCategory, !categoryOptions.isEmpty {
+                    Menu("Kategoriye Tasi") {
+                        ForEach(categoryOptions) { category in
+                            Button {
+                                onMoveToCategory(category)
+                            } label: {
+                                if item.category?.id == category.id {
+                                    Label(category.name, systemImage: "checkmark")
+                                } else {
+                                    Text(category.name)
+                                }
+                            }
+                            .disabled(item.category?.id == category.id)
+                        }
                     }
                 }
 

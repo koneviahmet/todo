@@ -168,6 +168,18 @@ struct TodoApp: App {
             }
         }
         .windowResizability(.contentSize)
+
+        WindowGroup("Gorevi Sil", id: "delete-task-window", for: UUID.self) { $taskID in
+            if let taskID {
+                DeleteTaskSceneView(taskID: taskID)
+                    .modelContainer(container)
+                    .environmentObject(appState)
+            } else {
+                ContentUnavailableView("Gorev secilmedi", systemImage: "trash")
+                    .padding(16)
+            }
+        }
+        .windowResizability(.contentSize)
     }
 
 }

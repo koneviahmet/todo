@@ -77,6 +77,14 @@ final class TaskItem {
         updateParentCompletionFromChildren()
     }
 
+    func assignCategoryRecursively(_ category: TaskCategory?) {
+        self.category = category
+        updatedAt = .now
+        for subtask in subtasks {
+            subtask.assignCategoryRecursively(category)
+        }
+    }
+
     func updateParentCompletionFromChildren() {
         guard let parentTask else { return }
         let allCompleted = !parentTask.subtasks.isEmpty && parentTask.subtasks.allSatisfy(\.isCompleted)
